@@ -21,10 +21,10 @@ import java.util.concurrent.Callable;
  * Created by cbartram on 7/6/2016.
  */
 @Script.Manifest(name = "AeroCraft", properties = "author=aerodude30; topic=1296203; client=4;", description = "Efficiently, crafts Gold Necklaces in Al-Kharid.")
-public class AeroCraft extends PollingScript<ClientContext>  implements PaintListener{
+public class AeroCraft extends PollingScript<ClientContext>  implements PaintListener {
 
     //Constants
-    private final int GOLD_BAR = 2357, AMULET_MOULD = 1597, BANK_BOOTH = 6943, FURNACE = 24009, GOLD_AMULET = 1673, START_LEVEL = ctx.skills.level(12);
+    private final int GOLD_BAR = 2357, AMULET_MOULD = 1597, BANK_BOOTH = 6943, FURNACE = 24009, GOLD_AMULET = 1654, START_LEVEL = ctx.skills.level(12);
     private final int[] BANKER = {396, 397};
     private final Component FURNACE_DIALOG = ctx.widgets.component(446, 21);
     private final Area BANK_AREA = new Area(new Tile(3272, 3162, 0), new Tile(3269, 3162, 0), new Tile(3269, 3173, 0), new Tile(3272, 3173, 0));
@@ -33,6 +33,11 @@ public class AeroCraft extends PollingScript<ClientContext>  implements PaintLis
             new Tile(3278, 3167, 0),
             new Tile(3280, 3180, 0),
             FURNACE_AREA.getRandomTile()
+    };
+    private final Tile[] pathToBank = {
+            new Tile(3280, 3180, 0),
+            new Tile(3278, 3167, 0),
+            BANK_AREA.getRandomTile()
     };
 
     //Variables
@@ -56,7 +61,7 @@ public class AeroCraft extends PollingScript<ClientContext>  implements PaintLis
             return State.BANK;
         }
 
-        if(ctx.inventory.select().id(AMULET_MOULD).count() == 27 && ctx.inventory.select().id(GOLD_BAR).count() == 0) {
+        if(ctx.inventory.select().id(GOLD_AMULET).count() == 27 && ctx.inventory.select().id(GOLD_BAR).count() == 0) {
             return State.REVERSE;
         }
 
@@ -73,6 +78,7 @@ public class AeroCraft extends PollingScript<ClientContext>  implements PaintLis
     @Override
     public void poll() {
         util.dismissRandom();
+        System.out.println(ctx.inventory.select().id(GOLD_AMULET).count() == 27);
         State state = getState();
         System.out.println(state);
         switch (state) {
@@ -102,7 +108,6 @@ public class AeroCraft extends PollingScript<ClientContext>  implements PaintLis
                     if(ctx.inventory.select().id(GOLD_AMULET).count() >= 1) {
                         status = "Depositing Amulets";
                         ctx.bank.deposit(GOLD_AMULET, Amount.ALL);
-                    } else {
                         ctx.bank.withdraw(GOLD_BAR, 27);
                     }
                     ctx.bank.close();
@@ -133,21 +138,23 @@ public class AeroCraft extends PollingScript<ClientContext>  implements PaintLis
                     furnace.click(true);
 
                     if(FURNACE_DIALOG.visible()) {
+                        status = "Waiting, Smelting...";
                         FURNACE_DIALOG.interact("Make-10");
+
+                        Condition.wait(new Callable<Boolean>() {
+                            @Override
+                            public Boolean call() throws Exception {
+                                return ctx.players.local().animation() != 899;
+                            }
+                        }, 2500, 10);
                     }
-                    Condition.wait(new Callable<Boolean>() {
-                        @Override
-                        public Boolean call() throws Exception {
-                            return ctx.players.local().animation() != 899;
-                        }
-                    }, 2500, 10);
                 }
 
                 break;
 
             case REVERSE:
                 status = "Walking to Bank";
-                ctx.movement.newTilePath(pathToFurnace).reverse();
+                ctx.movement.newTilePath(pathToBank).traverse();
 
                 Condition.wait(new Callable<Boolean>() {
                     @Override
