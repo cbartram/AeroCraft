@@ -136,18 +136,17 @@ public class AeroCraft extends PollingScript<ClientContext>  implements PaintLis
                     //use the gold bar on the furnace
                     ctx.inventory.select().id(GOLD_BAR).poll().interact("Use", "Gold bar");
                     furnace.click(true);
+                    Condition.sleep(Random.nextInt(500, 1000));
+                    FURNACE_DIALOG.interact("Make-10");
 
-                    if(FURNACE_DIALOG.visible()) {
-                        status = "Waiting, Smelting...";
-                        FURNACE_DIALOG.interact("Make-10");
+                    Condition.wait(new Callable<Boolean>() {
+                        @Override
+                        public Boolean call() throws Exception {
+                            status = "Smelting...";
+                            return ctx.players.local().animation() != 899;
+                        }
+                    }, 2500, 10);
 
-                        Condition.wait(new Callable<Boolean>() {
-                            @Override
-                            public Boolean call() throws Exception {
-                                return ctx.players.local().animation() != 899;
-                            }
-                        }, 2500, 10);
-                    }
                 }
 
                 break;
@@ -155,13 +154,14 @@ public class AeroCraft extends PollingScript<ClientContext>  implements PaintLis
             case REVERSE:
                 status = "Walking to Bank";
                 ctx.movement.newTilePath(pathToBank).traverse();
-
+                /*
                 Condition.wait(new Callable<Boolean>() {
                     @Override
                     public Boolean call() throws Exception {
                         return !ctx.players.local().inMotion();
                     }
                 }, 2500, 10);
+                */
                 break;
         }
 
